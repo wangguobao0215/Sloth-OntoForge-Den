@@ -25,3 +25,17 @@ Thumbs.db
 # Environment
 .env
 .env.*
+credentials.*
+
+# 私有文件（绝对不能提交）
+*设计方案*.md
+*评审*.md
+*开发计划*.md
+*参考资料*.md
+*设计文档*.md
+*.private.*
+
+# 临时文件
+*.tmp
+*.log
+desktop.ini

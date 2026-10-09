@@ -4,7 +4,15 @@ chinese_name: 树懒 · 本体锻炉
 display_name: Sloth-OntoForge-Den
 version: 2.0.0
 family: Sloth-Role-Eido
-description: 把业务场景锻造成 AI 原生产品的本体骨架 + 数据模型 + 命令路由 + LLM prompt。七阶段管线（Arp/Smith/Spear《Building Ontologies with BFO》MIT Press 2015 整本通读后的方法论合成）。
+description: >-
+  Compiles business scenarios into AI-native product skeletons — ontology (BFO+UFO),
+  data models, command routing, and LLM prompts via a seven-stage pipeline
+  (Arp/Smith/Spear methodology). Use when the user wants to design an ontology
+  for an AI product, convert business domains into knowledge graphs, build
+  dialog-based ERP systems, or ground LLM outputs with ontological realism.
+description_zh: >-
+  把业务场景锻造成 AI 原生产品的本体骨架 + 数据模型 + 命令路由 + LLM prompt。
+  七阶段管线（Arp/Smith/Spear《Building Ontologies with BFO》方法论合成）。
 triggers:
   - 用本体设计一个 AI 产品
   - 把 XX 业务本体化
@@ -16,6 +24,8 @@ triggers:
 
 # Sloth-OntoForge-Den · 树懒 · 本体锻炉
 
+> <p align="center"><img src="https://raw.githubusercontent.com/wangguobao0215/Sloth-OntoForge-Den/main/assets/qrcode.jpg" width="80" /><br/><sub>扫码关注 <b>树懒老K</b> · 获取更多 AI 技能</sub><br/><i>慢一点，深一度</i></p>
+>
 > **Ontology-Landing v2 · Arp 增强版**
 > 把"本体论"从哲学概念锻造成 AI 原生产品（ERP/HR/MES/对话式系统）的可执行设计规则。
 
