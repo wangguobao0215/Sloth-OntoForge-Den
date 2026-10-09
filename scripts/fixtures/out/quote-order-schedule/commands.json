@@ -1,0 +1,181 @@
+{
+  "scenario": "quote-order-schedule",
+  "generated_at": "2026-10-09T13:48:59",
+  "commands": [
+    {
+      "name": "/quote",
+      "type": "quick",
+      "endpoint": "POST /api/inquiry/submit"
+    },
+    {
+      "name": "/price",
+      "type": "direct",
+      "endpoint": "POST /api/quotation/{id}/price"
+    },
+    {
+      "name": "/submit-quote",
+      "type": "direct",
+      "endpoint": "POST /api/quotation/{id}/submit"
+    },
+    {
+      "name": "/approve",
+      "type": "direct",
+      "endpoint": "POST /api/quotation/{id}/approve",
+      "role": "Approver"
+    },
+    {
+      "name": "/reject",
+      "type": "direct",
+      "endpoint": "POST /api/quotation/{id}/reject",
+      "role": "Approver"
+    },
+    {
+      "name": "/send",
+      "type": "direct",
+      "endpoint": "POST /api/quotation/{id}/send"
+    },
+    {
+      "name": "/accept",
+      "type": "direct",
+      "endpoint": "POST /api/quotation/{id}/accept"
+    },
+    {
+      "name": "/convert",
+      "type": "direct",
+      "endpoint": "POST /api/quotation/{id}/convert-to-order"
+    },
+    {
+      "name": "/confirm-order",
+      "type": "direct",
+      "endpoint": "POST /api/order/{id}/confirm"
+    },
+    {
+      "name": "/schedule",
+      "type": "direct",
+      "endpoint": "POST /api/order/{id}/schedule"
+    },
+    {
+      "name": "/release-task",
+      "type": "direct",
+      "endpoint": "POST /api/task/{id}/release",
+      "role": "Planner"
+    },
+    {
+      "name": "/start-task",
+      "type": "direct",
+      "endpoint": "POST /api/task/{id}/start",
+      "role": "ShopFloorMgr"
+    },
+    {
+      "name": "/complete-task",
+      "type": "direct",
+      "endpoint": "POST /api/task/{id}/complete",
+      "role": "ShopFloorMgr"
+    }
+  ],
+  "queries": [
+    {
+      "natural": "查一下我本周提交的报价",
+      "route": "LLM → SQL (用 verbalization)"
+    },
+    {
+      "natural": "为什么报价 X 被驳回",
+      "route": "LLM 查 approval_log + reason"
+    },
+    {
+      "natural": "订单 Y 的排产进度如何",
+      "route": "LLM → KG 查询"
+    },
+    {
+      "natural": "当前空闲的机床有哪些",
+      "route": "LLM → SQL (machine_status=idle)"
+    }
+  ],
+  "events": [
+    {
+      "id": "ONT_CalcPrice",
+      "label": "核算价格",
+      "triggers": "ONT_Quotation.Draft→Pricing"
+    },
+    {
+      "id": "ONT_SubmitQuote",
+      "label": "提交报价",
+      "triggers": "ONT_Quotation.Pricing→PendingApproval"
+    },
+    {
+      "id": "ONT_Approve",
+      "label": "批准",
+      "triggers": "ONT_Quotation.PendingApproval→Approved"
+    },
+    {
+      "id": "ONT_Reject",
+      "label": "驳回",
+      "triggers": "ONT_Quotation.PendingApproval→Rejected"
+    },
+    {
+      "id": "ONT_SendQuote",
+      "label": "发送报价",
+      "triggers": "ONT_Quotation.Approved→Sent"
+    },
+    {
+      "id": "ONT_ExpireQuote",
+      "label": "过期",
+      "triggers": "ONT_Quotation.Sent→Expired"
+    },
+    {
+      "id": "ONT_AcceptQuote",
+      "label": "客户接受",
+      "triggers": "ONT_Quotation.Sent→Accepted"
+    },
+    {
+      "id": "ONT_ConvertToOrder",
+      "label": "转订单",
+      "triggers": "ONT_Quotation.Accepted + 创建 ONT_SalesOrder"
+    },
+    {
+      "id": "ONT_ConfirmOrder",
+      "label": "确认订单",
+      "triggers": "ONT_SalesOrder.Draft→Confirmed"
+    },
+    {
+      "id": "ONT_CreateSchedule",
+      "label": "生成排产",
+      "triggers": "ONT_SalesOrder.Confirmed + 创建 ONT_ProductionTask"
+    },
+    {
+      "id": "ONT_ReleaseTask",
+      "label": "下发任务",
+      "triggers": "ONT_ProductionTask.Queued→Released"
+    },
+    {
+      "id": "ONT_StartTask",
+      "label": "开工",
+      "triggers": "ONT_ProductionTask.Released→InProgress"
+    },
+    {
+      "id": "ONT_CompleteTask",
+      "label": "完工",
+      "triggers": "ONT_ProductionTask.InProgress→Completed"
+    },
+    {
+      "id": "ONT_AbortTask",
+      "label": "中止任务",
+      "triggers": "ONT_ProductionTask.InProgress→Aborted"
+    },
+    {
+      "id": "ONT_StartProduction",
+      "label": "进入生产",
+      "triggers": "ONT_SalesOrder.Confirmed→InProduction"
+    },
+    {
+      "id": "ONT_ShipOrder",
+      "label": "发货",
+      "triggers": "ONT_SalesOrder.InProduction→Shipped"
+    },
+    {
+      "id": "ONT_CloseOrder",
+      "label": "关闭订单",
+      "triggers": "ONT_SalesOrder.Shipped→Closed"
+    }
+  ]
+}

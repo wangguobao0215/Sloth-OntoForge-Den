@@ -1,0 +1,121 @@
+openapi: 3.0.3
+info:
+  title: 智能报价 → 订单 → 排产全链路 API
+  version: 1.0.0
+  description: |
+    从销售接到客户询价开始，经核算/审批/报价发送/客户确认/订单转化/排产下发， 到排产任务进入车间队列为止。 边界之外：采购、仓储、财务结算、年度维保。
+paths:
+  /api/inquiry/submit:
+    post:
+      operationId: quote
+      summary: /quote (quick)
+      responses:
+        '200': { description: OK }
+        '400': { description: 状态转移不合法 }
+        '403': { description: role 不匹配 }
+  /api/quotation/{id}/price:
+    post:
+      operationId: price
+      summary: /price (direct)
+      responses:
+        '200': { description: OK }
+        '400': { description: 状态转移不合法 }
+        '403': { description: role 不匹配 }
+  /api/quotation/{id}/submit:
+    post:
+      operationId: submit_quote
+      summary: /submit-quote (direct)
+      responses:
+        '200': { description: OK }
+        '400': { description: 状态转移不合法 }
+        '403': { description: role 不匹配 }
+  /api/quotation/{id}/approve:
+    post:
+      operationId: approve
+      summary: /approve (direct)
+      security:
+        - role: [Approver]
+      responses:
+        '200': { description: OK }
+        '400': { description: 状态转移不合法 }
+        '403': { description: role 不匹配 }
+  /api/quotation/{id}/reject:
+    post:
+      operationId: reject
+      summary: /reject (direct)
+      security:
+        - role: [Approver]
+      responses:
+        '200': { description: OK }
+        '400': { description: 状态转移不合法 }
+        '403': { description: role 不匹配 }
+  /api/quotation/{id}/send:
+    post:
+      operationId: send
+      summary: /send (direct)
+      responses:
+        '200': { description: OK }
+        '400': { description: 状态转移不合法 }
+        '403': { description: role 不匹配 }
+  /api/quotation/{id}/accept:
+    post:
+      operationId: accept
+      summary: /accept (direct)
+      responses:
+        '200': { description: OK }
+        '400': { description: 状态转移不合法 }
+        '403': { description: role 不匹配 }
+  /api/quotation/{id}/convert-to-order:
+    post:
+      operationId: convert
+      summary: /convert (direct)
+      responses:
+        '200': { description: OK }
+        '400': { description: 状态转移不合法 }
+        '403': { description: role 不匹配 }
+  /api/order/{id}/confirm:
+    post:
+      operationId: confirm_order
+      summary: /confirm-order (direct)
+      responses:
+        '200': { description: OK }
+        '400': { description: 状态转移不合法 }
+        '403': { description: role 不匹配 }
+  /api/order/{id}/schedule:
+    post:
+      operationId: schedule
+      summary: /schedule (direct)
+      responses:
+        '200': { description: OK }
+        '400': { description: 状态转移不合法 }
+        '403': { description: role 不匹配 }
+  /api/task/{id}/release:
+    post:
+      operationId: release_task
+      summary: /release-task (direct)
+      security:
+        - role: [Planner]
+      responses:
+        '200': { description: OK }
+        '400': { description: 状态转移不合法 }
+        '403': { description: role 不匹配 }
+  /api/task/{id}/start:
+    post:
+      operationId: start_task
+      summary: /start-task (direct)
+      security:
+        - role: [ShopFloorMgr]
+      responses:
+        '200': { description: OK }
+        '400': { description: 状态转移不合法 }
+        '403': { description: role 不匹配 }
+  /api/task/{id}/complete:
+    post:
+      operationId: complete_task
+      summary: /complete-task (direct)
+      security:
+        - role: [ShopFloorMgr]
+      responses:
+        '200': { description: OK }
+        '400': { description: 状态转移不合法 }
+        '403': { description: role 不匹配 }

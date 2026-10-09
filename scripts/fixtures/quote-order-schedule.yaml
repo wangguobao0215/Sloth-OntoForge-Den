@@ -1,0 +1,302 @@
+# Quote → Order → Schedule 全链路 fixture
+# AI 原生 ERP 主线路径，覆盖销售报价 / 订单转化 / 排产 3 个业务域
+# 用于驱动 compile.py 生成 5 个工程制品 + validate.py 三层验证
+
+meta:
+  id: quote-order-schedule
+  name_cn: 智能报价 → 订单 → 排产全链路
+  version: 1.0.0
+  scope: |
+    从销售接到客户询价开始，经核算/审批/报价发送/客户确认/订单转化/排产下发，
+    到排产任务进入车间队列为止。
+    边界之外：采购、仓储、财务结算、年度维保。
+  upper_ontology: BFO+UFO
+  realism_statement:
+    independent:
+      - 客户 (Customer)
+      - 产品 (Product)
+      - 员工 (Employee)
+      - CNC 机床 (CNC_Machine)
+      - 材料 (Material)
+      - 报价单 (Quotation)
+      - 销售订单 (Sales_Order)
+      - 排产任务 (Production_Task)
+    derived:
+      - 客户信用等级 (CustomerCreditLevel, mode)
+      - 报价总额 (TotalAmount, 计算属性)
+      - 订单毛利率 (OrderMarginRate, 计算属性)
+      - 机床利用率 (MachineUtilization, 计算属性)
+    nonexistent:
+      - 热门客户
+      - 待审批报价
+      - 高毛利订单
+      - 忙碌机床
+  domain_experts:
+    - 销售总监
+    - 报价工程师
+    - 计划员 (PMC)
+    - 车间主任
+
+# ──────────────────────────────────────────────────────────────
+# Upper-level (Layer A): BFO 父类 + UFO stereotype 双标注
+# ──────────────────────────────────────────────────────────────
+upper:
+  kinds:
+    - id: ONT_Customer
+      label: 客户
+      bfo_parent: Object
+      pi: customer_no
+      subkinds: [DirectCustomer, ChannelCustomer]
+    - id: ONT_Product
+      label: 产品
+      bfo_parent: Object
+      pi: sku
+      subkinds: [FinishedProduct, SemiProduct]
+    - id: ONT_Employee
+      label: 员工
+      bfo_parent: Object
+      pi: employee_no
+    - id: ONT_CNCMachine
+      label: CNC 机床
+      bfo_parent: Object
+      pi: machine_code
+    - id: ONT_Material
+      label: 材料
+      bfo_parent: Object
+      pi: material_code
+    - id: ONT_Quotation
+      label: 报价单
+      bfo_parent: InformationContentEntity
+      pi: quote_no
+    - id: ONT_SalesOrder
+      label: 销售订单
+      bfo_parent: InformationContentEntity
+      pi: order_no
+    - id: ONT_ProductionTask
+      label: 排产任务
+      bfo_parent: InformationContentEntity
+      pi: task_no
+
+  roles:
+    - id: ONT_SalesRep
+      label: 销售
+      depends_on: [ONT_QuotationRelator, ONT_SalesOrderRelator]
+    - id: ONT_Quoter
+      label: 报价人
+      depends_on: [ONT_QuotationRelator]
+    - id: ONT_Approver
+      label: 审批人
+      depends_on: [ONT_ApprovalRelator]
+    - id: ONT_OrderConverter
+      label: 订单转化员
+      depends_on: [ONT_SalesOrderRelator]
+    - id: ONT_Planner
+      label: 计划员
+      depends_on: [ONT_ScheduleRelator]
+    - id: ONT_ShopFloorMgr
+      label: 车间主任
+      depends_on: [ONT_ScheduleRelator]
+
+  relators:
+    - id: ONT_InquiryRelator
+      label: 询价关系
+      binds: [ONT_Customer, ONT_SalesRep]
+    - id: ONT_QuotationRelator
+      label: 报价关系
+      binds: [ONT_Customer, ONT_Quoter, ONT_Quotation]
+    - id: ONT_ApprovalRelator
+      label: 审批关系
+      binds: [ONT_Quotation, ONT_Approver]
+    - id: ONT_QuoteItemRelator
+      label: 报价项关系
+      binds: [ONT_Quotation, ONT_Product]
+    - id: ONT_OrderItemRelator
+      label: 订单项关系
+      binds: [ONT_SalesOrder, ONT_Product]
+    - id: ONT_SalesOrderRelator
+      label: 订单关系
+      binds: [ONT_Quotation, ONT_OrderConverter, ONT_SalesOrder]
+    - id: ONT_ScheduleRelator
+      label: 排产关系
+      binds: [ONT_SalesOrder, ONT_Planner, ONT_ProductionTask]
+
+# ──────────────────────────────────────────────────────────────
+# Domain-level (Layer B): 行业词汇 + BFO 关系显式标注
+# ──────────────────────────────────────────────────────────────
+domain:
+  kinds:
+    - id: ONT_ProcessRoute
+      label: 工艺路线
+      bfo_parent: InformationContentEntity
+      pi: route_id + version
+    - id: ONT_CNCProcess
+      label: CNC 工序
+      bfo_parent: Process
+      pi: process_id
+    - id: ONT_WorkCenter
+      label: 工作中心
+      bfo_parent: Object
+      pi: wc_code
+  qualities:
+    - id: ONT_UnitPrice
+      label: 单价
+      xsd: decimal
+      of: ONT_Product
+    - id: ONT_Quantity
+      label: 数量
+      xsd: integer
+      of: [ONT_QuoteItemRelator, ONT_SalesOrderRelator]
+    - id: ONT_DiscountRate
+      label: 折扣
+      xsd: decimal
+      of: ONT_Quotation
+    - id: ONT_ValidityDays
+      label: 有效期天数
+      xsd: integer
+      of: ONT_Quotation
+    - id: ONT_TotalAmount
+      label: 总额
+      xsd: decimal
+      of: [ONT_Quotation, ONT_SalesOrder]
+    - id: ONT_DeliveryDate
+      label: 交期
+      xsd: date
+      of: ONT_SalesOrder
+    - id: ONT_CycleTime
+      label: 节拍 (秒)
+      xsd: integer
+      of: ONT_CNCProcess
+    - id: ONT_MachineHourRate
+      label: 机时费 (元/小时)
+      xsd: decimal
+      of: ONT_CNCMachine
+    - id: ONT_PlannedStart
+      label: 计划开始
+      xsd: dateTime
+      of: ONT_ProductionTask
+    - id: ONT_PlannedEnd
+      label: 计划结束
+      xsd: dateTime
+      of: ONT_ProductionTask
+  modes:
+    - id: ONT_CustomerCreditLevel
+      label: 客户信用等级
+      xsd: integer
+      of: ONT_Customer
+    - id: ONT_MachineStatus
+      label: 机床状态
+      xsd: string
+      of: ONT_CNCMachine
+      enum: [idle, busy, maintenance, breakdown]
+  bfo_relations:
+    - type: continuant_part_of
+      subject: ONT_QuoteItemRelator
+      object: ONT_Quotation
+    - type: continuant_part_of
+      subject: ONT_OrderItemRelator
+      object: ONT_SalesOrder
+    - type: specifically_depends_on
+      subject: ONT_CustomerCreditLevel
+      object: ONT_Customer
+    - type: specifically_depends_on
+      subject: ONT_MachineStatus
+      object: ONT_CNCMachine
+    - type: participates_in
+      subject: ONT_SalesRep
+      object: ONT_QuotationRelator
+    - type: has_participant
+      subject: ONT_SubmitQuote
+      object: ONT_Quoter
+    - type: preceded_by
+      subject: ONT_SalesOrder
+      object: ONT_Quotation
+
+# ──────────────────────────────────────────────────────────────
+# Application-level (Layer C): phase + event + command
+# ──────────────────────────────────────────────────────────────
+application:
+  phases:
+    - of: ONT_Quotation
+      states: [Draft, Pricing, PendingApproval, Approved, Rejected, Sent, Expired, Accepted]
+      initial: Draft
+      transitions:
+        - { from: Draft, to: Pricing, event: ONT_CalcPrice }
+        - { from: Pricing, to: PendingApproval, event: ONT_SubmitQuote }
+        - { from: PendingApproval, to: Approved, event: ONT_Approve }
+        - { from: PendingApproval, to: Rejected, event: ONT_Reject }
+        - { from: Approved, to: Sent, event: ONT_SendQuote }
+        - { from: Sent, to: Expired, event: ONT_ExpireQuote, guard: valid_days 超期 }
+        - { from: Sent, to: Accepted, event: ONT_AcceptQuote }
+    - of: ONT_SalesOrder
+      states: [Draft, Confirmed, InProduction, Shipped, Closed]
+      initial: Draft
+      transitions:
+        - { from: Draft, to: Confirmed, event: ONT_ConfirmOrder }
+        - { from: Confirmed, to: InProduction, event: ONT_StartProduction }
+        - { from: InProduction, to: Shipped, event: ONT_ShipOrder }
+        - { from: Shipped, to: Closed, event: ONT_CloseOrder }
+    - of: ONT_ProductionTask
+      states: [Queued, Released, InProgress, Completed, Aborted]
+      initial: Queued
+      transitions:
+        - { from: Queued, to: Released, event: ONT_ReleaseTask }
+        - { from: Released, to: InProgress, event: ONT_StartTask }
+        - { from: InProgress, to: Completed, event: ONT_CompleteTask }
+        - { from: InProgress, to: Aborted, event: ONT_AbortTask }
+
+  events:
+    - { id: ONT_CalcPrice, label: 核算价格, triggers: ONT_Quotation.Draft→Pricing }
+    - { id: ONT_SubmitQuote, label: 提交报价, triggers: ONT_Quotation.Pricing→PendingApproval }
+    - { id: ONT_Approve, label: 批准, triggers: ONT_Quotation.PendingApproval→Approved }
+    - { id: ONT_Reject, label: 驳回, triggers: ONT_Quotation.PendingApproval→Rejected }
+    - { id: ONT_SendQuote, label: 发送报价, triggers: ONT_Quotation.Approved→Sent }
+    - { id: ONT_ExpireQuote, label: 过期, triggers: ONT_Quotation.Sent→Expired }
+    - { id: ONT_AcceptQuote, label: 客户接受, triggers: ONT_Quotation.Sent→Accepted }
+    - { id: ONT_ConvertToOrder, label: 转订单, triggers: ONT_Quotation.Accepted + 创建 ONT_SalesOrder }
+    - { id: ONT_ConfirmOrder, label: 确认订单, triggers: ONT_SalesOrder.Draft→Confirmed }
+    - { id: ONT_CreateSchedule, label: 生成排产, triggers: ONT_SalesOrder.Confirmed + 创建 ONT_ProductionTask }
+    - { id: ONT_ReleaseTask, label: 下发任务, triggers: ONT_ProductionTask.Queued→Released }
+    - { id: ONT_StartTask, label: 开工, triggers: ONT_ProductionTask.Released→InProgress }
+    - { id: ONT_CompleteTask, label: 完工, triggers: ONT_ProductionTask.InProgress→Completed }
+    - { id: ONT_AbortTask, label: 中止任务, triggers: ONT_ProductionTask.InProgress→Aborted }
+    - { id: ONT_StartProduction, label: 进入生产, triggers: ONT_SalesOrder.Confirmed→InProduction }
+    - { id: ONT_ShipOrder, label: 发货, triggers: ONT_SalesOrder.InProduction→Shipped }
+    - { id: ONT_CloseOrder, label: 关闭订单, triggers: ONT_SalesOrder.Shipped→Closed }
+
+  commands:
+    - { name: /quote, type: quick, endpoint: "POST /api/inquiry/submit", role: SalesRep }
+    - { name: /price, type: direct, endpoint: "POST /api/quotation/{id}/price", role: Quoter }
+    - { name: /submit-quote, type: direct, endpoint: "POST /api/quotation/{id}/submit", role: Quoter }
+    - { name: /approve, type: direct, endpoint: "POST /api/quotation/{id}/approve", role: Approver }
+    - { name: /reject, type: direct, endpoint: "POST /api/quotation/{id}/reject", role: Approver }
+    - { name: /send, type: direct, endpoint: "POST /api/quotation/{id}/send", role: SalesRep }
+    - { name: /accept, type: direct, endpoint: "POST /api/quotation/{id}/accept", role: SalesRep }
+    - { name: /convert, type: direct, endpoint: "POST /api/quotation/{id}/convert-to-order", role: OrderConverter }
+    - { name: /confirm-order, type: direct, endpoint: "POST /api/order/{id}/confirm", role: OrderConverter }
+    - { name: /schedule, type: direct, endpoint: "POST /api/order/{id}/schedule", role: Planner }
+    - { name: /release-task, type: direct, endpoint: "POST /api/task/{id}/release", role: Planner }
+    - { name: /start-task, type: direct, endpoint: "POST /api/task/{id}/start", role: ShopFloorMgr }
+    - { name: /complete-task, type: direct, endpoint: "POST /api/task/{id}/complete", role: ShopFloorMgr }
+
+  queries:
+    - { natural: 查一下我本周提交的报价, route: LLM → SQL (用 verbalization) }
+    - { natural: 为什么报价 X 被驳回, route: LLM 查 approval_log + reason }
+    - { natural: 订单 Y 的排产进度如何, route: LLM → KG 查询 }
+    - { natural: 当前空闲的机床有哪些, route: LLM → SQL (machine_status=idle) }
+
+# ──────────────────────────────────────────────────────────────
+# Verbalization 配置
+# ──────────────────────────────────────────────────────────────
+verbalization:
+  domain_name: CNC 机加工智能报价/订单/排产
+  axioms:
+    - 报价金额 = 各报价项（数量 × 单价）之和，再乘以（1 - 折扣率），由系统自动计算，人工不可覆盖
+    - 审批通过后报价单才能发送给客户；60 天未确认自动过期
+    - 销售订单只能从已审批的报价单转化而来，不可手动创建
+  examples:
+    - { natural: 帮我给客户 ABC 提交一份报价, route: "/quote 命令（需要 SalesRep 角色）" }
+    - { natural: 查一下我本周提交的报价, route: "LLM → SQL 查询（只读）" }
+    - { natural: 把报价 Q-2026-001 转成订单, route: "/convert 命令（需要 OrderConverter 角色）" }
+    - { natural: 为什么报价 X 被驳回, route: "LLM 查 approval_log + reason（只读）" }
+    - { natural: 当前空闲的机床有哪些, route: "LLM → SQL 查询 machine_status=idle（只读）" }
+    - { natural: 帮我审批这份报价, route: "/approve 命令（需要 Approver 角色）" }
